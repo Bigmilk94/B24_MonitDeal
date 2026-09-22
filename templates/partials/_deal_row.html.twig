@@ -1,0 +1,70 @@
+{% set deal = view.deal %}
+{% set m = view.metrics %}
+{% set progress = m.progressPercent %}
+{% set stage_class = deal.stage.value == 'won' ? 'is-won' : (deal.stage.value == 'lost' ? 'is-lost' : '') %}
+<tr>
+    <td class="cell-deal">
+        <a class="deal-link" href="{{ path('deal_show', {id: deal.id}) }}">{{ deal.title }}</a>
+        <div class="cell-sub">#{{ deal.id }} · {{ view.contact.name }}</div>
+    </td>
+    <td>
+        {{ view.company.name }}
+        <div class="cell-sub">{{ view.owner.name }}</div>
+    </td>
+    <td><span class="stage-pill {{ stage_class }}">{{ deal.stage.label }}</span></td>
+    <td>{{ deal.value|money(deal.currency) }}</td>
+    <td>
+        {{ deal.createdAt|date_pl }}
+        <div class="cell-sub">{{ m.daysSinceCreation }} dni temu</div>
+    </td>
+    <td>
+        {{ deal.expectedCloseAt is not null ? deal.expectedCloseAt|date_pl : '—' }}
+    </td>
+    <td>
+        <span class="badge-{{ m.lastActivitySeverity.value }}">{{ m.lastActivityRelative }}</span>
+        {% if m.lastActivity is not null %}
+            <div class="cell-sub">{{ m.lastActivity.completedAt|datetime_pl }}</div>
+        {% endif %}
+    </td>
+    <td class="cell-activity">
+        {% if m.lastActivity is not null %}
+            <span class="activity-icon">{{ m.lastActivity.type.icon }}</span>{{ m.lastActivity.type.label }}
+            <span class="activity-desc">{{ m.lastActivity.title }}</span>
+            <span class="activity-meta">{{ m.lastActivity.performedBy.name }}</span>
+        {% else %}
+            <span class="cell-sub">Brak aktywności</span>
+        {% endif %}
+    </td>
+    <td>{{ m.daysOnCurrentStage }} dni</td>
+    <td class="stat-mini">
+        <b>{{ m.emailStats.total }}</b>
+        <div class="stat-sub">wys. {{ m.emailStats.sent }} / odb. {{ m.emailStats.received }}</div>
+    </td>
+    <td class="stat-mini">
+        <b>{{ m.taskStats.total }}</b>
+        <div class="stat-sub">
+            ✓{{ m.taskStats.completed }} ○{{ m.taskStats.open }}
+            {% if m.taskStats.overdue > 0 %}<span class="badge-attention">!{{ m.taskStats.overdue }}</span>{% endif %}
+        </div>
+    </td>
+    <td class="progress-cell">
+        {% if progress is null %}
+            <span class="cell-sub">Brak aktywności</span>
+        {% else %}
+            <div class="progress-label">{{ m.completedActivities }} / {{ m.totalActivities }} ({{ progress }}%)</div>
+            <div class="progress-track"><div class="progress-fill" style="width: {{ progress }}%"></div></div>
+        {% endif %}
+    </td>
+    <td class="cell-activity">
+        {% if m.nextAction is not null %}
+            <span class="activity-icon">{{ m.nextAction.type.icon }}</span>{{ m.nextAction.type.label }}
+            <span class="activity-desc">{{ m.nextAction.title }}</span>
+            <span class="activity-meta">
+                {{ m.nextAction.plannedAt|datetime_pl }} · {{ m.nextAction.performedBy.name }}
+            </span>
+        {% else %}
+            <span class="cell-sub">Brak zaplanowanego działania</span>
+        {% endif %}
+    </td>
+    <td class="cell-flags">{% include 'partials/_flags.html.twig' with {flags: m.flags} %}</td>
+</tr>

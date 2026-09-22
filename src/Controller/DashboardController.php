@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controller;
+namespace App\Controller;
 
 use App\Domain\Model\DealView;
 use App\Service\Crm\CrmServiceInterface;
 use App\Service\DealViewFactory;
 use App\Support\DateHelper;
-use App\Support\Request;
-use App\Support\View;
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
-final class DashboardController
+final class DashboardController extends AbstractController
 {
     private const ATTENTION_FLAGS = [
         'Brak aktywności od 7 dni',
@@ -24,14 +25,16 @@ final class DashboardController
     public function __construct(
         private readonly CrmServiceInterface $crm,
         private readonly DealViewFactory $dealViewFactory,
-        private readonly View $view,
-        private readonly DateTimeImmutable $now,
+        private readonly ClockInterface $clock,
     ) {
     }
 
-    public function index(Request $request): void
+    #[Route('/', name: 'dashboard', methods: ['GET'])]
+    public function index(): Response
     {
-        $allDeals = $this->dealViewFactory->buildAll($this->now);
+        $now = $this->clock->now();
+
+        $allDeals = $this->dealViewFactory->buildAll($now);
         $activeDeals = array_values(array_filter($allDeals, static fn (DealView $v) => $v->deal->stage->isOpen()));
 
         $totalActiveValue = array_sum(array_map(static fn (DealView $v) => $v->deal->value, $activeDeals));
@@ -44,11 +47,11 @@ final class DashboardController
         foreach ($allDeals as $view) {
             foreach ($this->crm->getDealActivities($view->deal->id) as $activity) {
                 $completedAt = $activity->completedAt();
-                if ($completedAt !== null && DateHelper::daysBetween($completedAt, $this->now) === 0) {
+                if ($completedAt !== null && DateHelper::daysBetween($completedAt, $now) === 0) {
                     $doneToday++;
                 }
                 $plannedAt = $activity->plannedAt();
-                if ($plannedAt !== null && DateHelper::daysBetween($plannedAt, $this->now) === 0) {
+                if ($plannedAt !== null && DateHelper::daysBetween($plannedAt, $now) === 0) {
                     $plannedToday++;
                 }
             }
@@ -65,8 +68,9 @@ final class DashboardController
             return $bySeverity !== 0 ? $bySeverity : $b->metrics->daysSinceLastActivity <=> $a->metrics->daysSinceLastActivity;
         });
 
-        $this->view->renderPage('dashboard', [
-            'now' => $this->now,
+        return $this->render('dashboard.html.twig', [
+            'activeNav' => 'dashboard',
+            'pageTitle' => 'Dashboard',
             'activeDealsCount' => count($activeDeals),
             'totalActiveValue' => $totalActiveValue,
             'staleCount' => $staleCount,
@@ -75,6 +79,6 @@ final class DashboardController
             'doneToday' => $doneToday,
             'plannedToday' => $plannedToday,
             'needsAttention' => array_slice($needsAttention, 0, 12),
-        ], 'dashboard', 'Dashboard');
+        ]);
     }
 }

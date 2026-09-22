@@ -1,0 +1,11 @@
+{% set flag_class = {
+    'Aktywny deal': 'flag-normal',
+    'Ostatnia aktywność dzisiaj': 'flag-normal',
+    'Brak aktywności od 7 dni': 'flag-attention',
+    'Zadanie przeterminowane': 'flag-attention',
+    'Brak zaplanowanego następnego działania': 'flag-warning',
+    'Duża liczba otwartych zadań': 'flag-warning',
+} %}
+{% for flag in flags %}
+    <span class="flag {{ flag_class[flag] ?? 'flag-neutral' }}">{{ flag }}</span>
+{% endfor %}

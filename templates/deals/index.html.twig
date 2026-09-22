@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% macro sort_link(field, label, currentSort, currentDir) %}
+    {% set nextDir = (currentSort == field and currentDir == 'desc') ? 'asc' : 'desc' %}
+    {% set cls = currentSort == field ? 'is-sorted' : '' %}
+    {% set arrow = currentSort == field ? (currentDir == 'desc' ? ' ↓' : ' ↑') : '' %}
+    <a class="{{ cls }}" href="{{ merge_query({sort: field, dir: nextDir}) }}">{{ label }}{{ arrow }}</a>
+{% endmacro %}
+
+{% block content %}
+{% import _self as helpers %}
+{% set currentSort = params.sort ?? 'last_activity' %}
+{% set currentDir = params.dir ?? 'desc' %}
+{% set quick = params.quick ?? '' %}
+{% set quickFilters = {
+    '': 'Wszystkie',
+    'active_today': 'Aktywne dzisiaj',
+    'stale_3': 'Brak aktywności 3+ dni',
+    'stale_7': 'Brak aktywności 7+ dni',
+    'no_next_action': 'Brak następnego działania',
+    'overdue_tasks': 'Przeterminowane zadania',
+} %}
+{% set selectedStages = params.stage is defined ? (params.stage is iterable ? params.stage : [params.stage]) : [] %}
+{% set selectedOwners = params.owner is defined ? (params.owner is iterable ? params.owner : [params.owner]) : [] %}
+{% set selectedCompanies = params.company is defined ? (params.company is iterable ? params.company : [params.company]) : [] %}
+
+<div class="filters-bar">
+    {% for key, label in quickFilters %}
+        <a class="quick-filter {{ quick == key ? 'is-active' : '' }}" href="{{ merge_query({quick: key ?: null}) }}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<form class="filters-panel" method="get" action="{{ path('deals') }}">
+    <input type="hidden" name="q" value="{{ params.q ?? '' }}">
+    <input type="hidden" name="sort" value="{{ currentSort }}">
+    <input type="hidden" name="dir" value="{{ currentDir }}">
+    <input type="hidden" name="quick" value="{{ quick }}">
+
+    <div class="field">
+        <label>Etap</label>
+        <select name="stage[]" multiple size="4">
+            {% for stage in stages %}
+                <option value="{{ stage.value }}" {{ stage.value in selectedStages ? 'selected' : '' }}>{{ stage.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>Osoba odpowiedzialna</label>
+        <select name="owner[]" multiple size="4">
+            {% for owner in owners %}
+                <option value="{{ owner.id }}" {{ owner.id in selectedOwners ? 'selected' : '' }}>{{ owner.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>Klient</label>
+        <select name="company[]" multiple size="4">
+            {% for company in companies %}
+                <option value="{{ company.id }}" {{ company.id in selectedCompanies ? 'selected' : '' }}>{{ company.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>Utworzono od</label>
+        <input type="date" name="created_from" value="{{ params.created_from ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Utworzono do</label>
+        <input type="date" name="created_to" value="{{ params.created_to ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Zamknięcie od</label>
+        <input type="date" name="close_from" value="{{ params.close_from ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Zamknięcie do</label>
+        <input type="date" name="close_to" value="{{ params.close_to ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Ostatnia aktywność od</label>
+        <input type="date" name="last_activity_from" value="{{ params.last_activity_from ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Ostatnia aktywność do</label>
+        <input type="date" name="last_activity_to" value="{{ params.last_activity_to ?? '' }}">
+    </div>
+    <div class="field">
+        <label>Rodzaj ostatniej aktywności</label>
+        <select name="last_activity_type">
+            <option value="">Dowolny</option>
+            {% for type in activityTypes %}
+                <option value="{{ type.value }}" {{ (params.last_activity_type ?? '') == type.value ? 'selected' : '' }}>{{ type.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label>Otwarte zadania</label>
+        <select name="has_open_tasks">
+            <option value="">Dowolnie</option>
+            <option value="1" {{ (params.has_open_tasks ?? '') == '1' ? 'selected' : '' }}>Tak</option>
+            <option value="0" {{ (params.has_open_tasks ?? '') == '0' ? 'selected' : '' }}>Nie</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Przeterminowane zadania</label>
+        <select name="has_overdue_tasks">
+            <option value="">Dowolnie</option>
+            <option value="1" {{ (params.has_overdue_tasks ?? '') == '1' ? 'selected' : '' }}>Tak</option>
+            <option value="0" {{ (params.has_overdue_tasks ?? '') == '0' ? 'selected' : '' }}>Nie</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Ma zaplanowane działanie</label>
+        <select name="has_next_action">
+            <option value="">Dowolnie</option>
+            <option value="1" {{ (params.has_next_action ?? '') == '1' ? 'selected' : '' }}>Tak</option>
+            <option value="0" {{ (params.has_next_action ?? '') == '0' ? 'selected' : '' }}>Nie</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Brak aktywności od (dni)</label>
+        <input type="number" min="0" name="stale_days" value="{{ params.stale_days ?? '' }}" placeholder="np. 5">
+    </div>
+
+    <div class="filters-actions">
+        <button type="submit" class="btn btn-primary">Zastosuj filtry</button>
+        <a class="btn" href="{{ path('deals') }}">Wyczyść</a>
+    </div>
+</form>
+
+<div class="results-meta">
+    Pokazano {{ filteredCount }} z {{ totalCount }} deali
+    {% if params.q is defined and params.q != '' %} · szukano: „{{ params.q }}”{% endif %}
+</div>
+
+<div class="table-wrap">
+<table class="deals-table">
+    <thead>
+    <tr>
+        <th>Deal</th>
+        <th>Klient</th>
+        <th>Etap</th>
+        <th>{{ helpers.sort_link('value', 'Wartość', currentSort, currentDir) }}</th>
+        <th>{{ helpers.sort_link('created_at', 'Utworzono', currentSort, currentDir) }}</th>
+        <th>{{ helpers.sort_link('expected_close_at', 'Przewidywane zamknięcie', currentSort, currentDir) }}</th>
+        <th>{{ helpers.sort_link('last_activity', 'Ostatnia aktywność', currentSort, currentDir) }}</th>
+        <th>Rodzaj aktywności</th>
+        <th>{{ helpers.sort_link('days_on_stage', 'Dni na etapie', currentSort, currentDir) }}</th>
+        <th>E-maile</th>
+        <th>{{ helpers.sort_link('open_tasks', 'Zadania', currentSort, currentDir) }}</th>
+        <th>{{ helpers.sort_link('total_activities', 'Postęp', currentSort, currentDir) }}</th>
+        <th>Następne działanie</th>
+        <th>Status</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% if deals is empty %}
+        <tr><td colspan="14" class="empty-state">Brak deali spełniających wybrane kryteria.</td></tr>
+    {% else %}
+        {% for view in deals %}
+            {% include 'partials/_deal_row.html.twig' with {view: view} %}
+        {% endfor %}
+    {% endif %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

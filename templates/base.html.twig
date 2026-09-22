@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= e($pageTitle) ?> — MonitDeal</title>
+<title>{% block title %}{{ pageTitle }} — MonitDeal{% endblock %}</title>
 <link rel="stylesheet" href="/assets/css/app.css">
 <script>
 (function () {
@@ -18,11 +18,11 @@
 </head>
 <body>
 <div class="app-shell">
-    <?= $this->partial('sidebar', ['activeNav' => $activeNav]) ?>
+    {% include 'partials/_sidebar.html.twig' %}
     <div class="main-area">
-        <?= $this->partial('topbar', ['pageTitle' => $pageTitle]) ?>
+        {% include 'partials/_topbar.html.twig' %}
         <main class="content">
-            <?= $content ?>
+            {% block content %}{% endblock %}
         </main>
     </div>
 </div>

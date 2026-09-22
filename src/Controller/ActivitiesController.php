@@ -2,29 +2,31 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controller;
+namespace App\Controller;
 
 use App\Domain\Enum\ActivityType;
 use App\Service\Crm\CrmServiceInterface;
-use App\Support\Request;
-use App\Support\View;
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Cross-deal activity feed — every logged activity across every deal,
  * newest first, with a type filter. Complements the per-deal timeline
  * on the deal detail page.
  */
-final class ActivitiesController
+final class ActivitiesController extends AbstractController
 {
     public function __construct(
         private readonly CrmServiceInterface $crm,
-        private readonly View $view,
-        private readonly DateTimeImmutable $now,
+        private readonly ClockInterface $clock,
     ) {
     }
 
-    public function index(Request $request): void
+    #[Route('/activities', name: 'activities', methods: ['GET'])]
+    public function index(Request $request): Response
     {
         $dealsById = [];
         foreach ($this->crm->getDeals() as $deal) {
@@ -38,7 +40,7 @@ final class ActivitiesController
             }
         }
 
-        $typeFilter = (string) $request->query('activity_type', '');
+        $typeFilter = (string) $request->query->get('activity_type', '');
         if ($typeFilter !== '') {
             $activities = array_values(array_filter(
                 $activities,
@@ -48,12 +50,13 @@ final class ActivitiesController
 
         usort($activities, static fn (array $a, array $b) => $b['activity']->timelineAt() <=> $a['activity']->timelineAt());
 
-        $this->view->renderPage('activities/index', [
+        return $this->render('activities/index.html.twig', [
+            'activeNav' => 'activities',
+            'pageTitle' => 'Aktywności',
             'rows' => array_slice($activities, 0, 150),
             'totalCount' => count($activities),
             'activityTypes' => ActivityType::cases(),
             'selectedType' => $typeFilter,
-            'now' => $this->now,
-        ], 'activities', 'Aktywności');
+        ]);
     }
 }

@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+{% set deal = view.deal %}
+{% set m = view.metrics %}
+{% set progress = m.progressPercent %}
+{% set stage_class = deal.stage.value == 'won' ? 'is-won' : (deal.stage.value == 'lost' ? 'is-lost' : '') %}
+
+<a class="back-link" href="{{ path('deals') }}">← Wróć do listy deali</a>
+
+<div class="deal-header">
+    <div>
+        <h2>{{ deal.title }}</h2>
+        <div class="cell-sub">
+            #{{ deal.id }} · {{ view.company.name }} · {{ view.contact.name }}
+        </div>
+    </div>
+    <div class="attention-flags">
+        <span class="stage-pill {{ stage_class }}">{{ deal.stage.label }}</span>
+        {% include 'partials/_flags.html.twig' with {flags: m.flags} %}
+    </div>
+</div>
+
+<div class="section">
+    <h3 class="section-title">Informacje podstawowe</h3>
+    <div class="info-grid">
+        <div class="info-item"><div class="info-label">Firma</div><div class="info-value">{{ view.company.name }}</div></div>
+        <div class="info-item"><div class="info-label">Kontakt</div><div class="info-value">{{ view.contact.name }}</div></div>
+        <div class="info-item"><div class="info-label">Osoba odpowiedzialna</div><div class="info-value">{{ view.owner.name }}</div></div>
+        <div class="info-item"><div class="info-label">Etap</div><div class="info-value">{{ deal.stage.label }} ({{ m.daysOnCurrentStage }} dni)</div></div>
+        <div class="info-item"><div class="info-label">Wartość</div><div class="info-value">{{ deal.value|money(deal.currency) }}</div></div>
+        <div class="info-item"><div class="info-label">Data utworzenia</div><div class="info-value">{{ deal.createdAt|date_pl }} ({{ m.daysSinceCreation }} dni temu)</div></div>
+        <div class="info-item"><div class="info-label">Przewidywane zamknięcie</div><div class="info-value">{{ deal.expectedCloseAt is not null ? deal.expectedCloseAt|date_pl : '—' }}</div></div>
+        <div class="info-item"><div class="info-label">E-mail kontaktu</div><div class="info-value">{{ view.contact.email }}</div></div>
+        <div class="info-item"><div class="info-label">Telefon kontaktu</div><div class="info-value">{{ view.contact.phone }}</div></div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="last-activity-box">
+        <div class="box-label">Ostatnia aktywność</div>
+        {% if m.lastActivity is not null %}
+            <div class="timeline-title">{{ m.lastActivity.type.icon }} {{ m.lastActivity.type.label }}</div>
+            <div class="timeline-desc">„{{ m.lastActivity.title }}”</div>
+            <div class="timeline-author">{{ m.lastActivity.completedAt|datetime_pl }} · {{ m.lastActivity.performedBy.name }}</div>
+            <div class="cell-sub" style="margin-top:6px;">
+                <span class="badge-{{ m.lastActivitySeverity.value }}">{{ m.lastActivityRelative }}</span>
+            </div>
+        {% else %}
+            <div class="empty-state">Brak jakiejkolwiek aktywności.</div>
+        {% endif %}
+    </div>
+    <div class="next-action-box">
+        <div class="box-label">Następne działanie</div>
+        {% if m.nextAction is not null %}
+            <div class="timeline-title">{{ m.nextAction.type.icon }} {{ m.nextAction.type.label }}</div>
+            <div class="timeline-desc">„{{ m.nextAction.title }}”</div>
+            <div class="timeline-author">{{ m.nextAction.plannedAt|datetime_pl }} · {{ m.nextAction.performedBy.name }}</div>
+        {% else %}
+            <div class="empty-state">Brak zaplanowanego działania</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <h3 class="section-title">Statystyki aktywności</h3>
+    {% if progress is not null %}
+        <div class="progress-label">Aktywności: {{ m.completedActivities }} / {{ m.totalActivities }} ({{ progress }}%)</div>
+        <div class="progress-track" style="width: 220px;"><div class="progress-fill" style="width: {{ progress }}%"></div></div>
+    {% endif %}
+    <div class="stats-grid" style="margin-top:16px;">
+        <div class="stat-card">
+            <div class="stat-title">E-maile</div>
+            <div class="stat-total">{{ m.emailStats.total }}</div>
+            <div class="stat-breakdown"><span>Wysłane: {{ m.emailStats.sent }}</span><span>Odebrane: {{ m.emailStats.received }}</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Zadania</div>
+            <div class="stat-total">{{ m.taskStats.total }}</div>
+            <div class="stat-breakdown">
+                <span>✓ {{ m.taskStats.completed }} zakończone</span>
+                <span>○ {{ m.taskStats.open }} otwarte</span>
+                {% if m.taskStats.overdue > 0 %}<span class="badge-attention">! {{ m.taskStats.overdue }} przeterminowane</span>{% endif %}
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Telefony</div>
+            <div class="stat-total">{{ m.callStats.total }}</div>
+            <div class="stat-breakdown"><span>Wykonane: {{ m.callStats.done }}</span><span>Zaplanowane: {{ m.callStats.planned }}</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Spotkania</div>
+            <div class="stat-total">{{ m.meetingStats.total }}</div>
+            <div class="stat-breakdown"><span>Zakończone: {{ m.meetingStats.done }}</span><span>Zaplanowane: {{ m.meetingStats.planned }}</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Aktywności CRM</div>
+            <div class="stat-total">{{ m.crmActivityStats.total }}</div>
+            <div class="stat-breakdown"><span>Zakończone: {{ m.crmActivityStats.completed }}</span><span>Zaplanowane: {{ m.crmActivityStats.planned }}</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h3 class="section-title">Historia aktywności</h3>
+    <div class="timeline-filters">
+        <a class="quick-filter {{ selectedType == '' ? 'is-active' : '' }}" href="?activity_type=">Wszystkie</a>
+        {% for type in activityTypes %}
+            <a class="quick-filter {{ selectedType == type.value ? 'is-active' : '' }}" href="?activity_type={{ type.value }}">{{ type.icon }} {{ type.label }}</a>
+        {% endfor %}
+    </div>
+
+    {% if timeline is empty %}
+        <div class="empty-state">Brak aktywności dla wybranego filtra.</div>
+    {% else %}
+        <div class="timeline">
+            {% for activity in timeline %}
+                <div class="timeline-item {{ activity.isCompleted ? '' : 'is-planned' }}">
+                    <div class="timeline-date">
+                        {{ activity.timelineAt|datetime_pl }}
+                        {% if not activity.isCompleted %}<span class="cell-sub">(zaplanowane)</span>{% endif %}
+                    </div>
+                    <div class="timeline-title">{{ activity.type.icon }} {{ activity.type.label }}</div>
+                    <div class="timeline-desc">„{{ activity.title }}”{% if activity.description is not null %} — {{ activity.description }}{% endif %}</div>
+                    <div class="timeline-author">{{ activity.performedBy.name }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

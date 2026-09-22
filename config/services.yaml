@@ -1,0 +1,25 @@
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/Domain/'
+
+    # Single composition point for the CRM adapter: swap this alias to a real
+    # implementation (e.g. a Bitrix24 client) and nothing else in the app
+    # needs to change — every controller and service depends only on the
+    # interface.
+    App\Service\Crm\CrmServiceInterface: '@App\Service\Crm\MockCrmService'
+
+    # MockCrmService needs "now" at construction time (it seeds the demo
+    # data generator once per request); a tiny static factory lets us pull
+    # that from the standard PSR-20 clock instead of wiring a raw
+    # DateTimeImmutable through the container.
+    App\Service\Crm\MockCrmService:
+        factory: ['App\Service\Crm\MockCrmServiceFactory', 'create']
