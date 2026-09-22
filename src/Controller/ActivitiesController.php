@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Domain\Enum\ActivityType;
 use App\Service\Crm\CrmServiceInterface;
+use App\Support\View;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,12 +23,15 @@ final class ActivitiesController extends AbstractController
     public function __construct(
         private readonly CrmServiceInterface $crm,
         private readonly ClockInterface $clock,
+        private readonly View $view,
     ) {
     }
 
     #[Route('/activities', name: 'activities', methods: ['GET'])]
     public function index(Request $request): Response
     {
+        $now = $this->clock->now();
+
         $dealsById = [];
         foreach ($this->crm->getDeals() as $deal) {
             $dealsById[$deal->id] = $deal;
@@ -50,13 +54,14 @@ final class ActivitiesController extends AbstractController
 
         usort($activities, static fn (array $a, array $b) => $b['activity']->timelineAt() <=> $a['activity']->timelineAt());
 
-        return $this->render('activities/index.html.twig', [
-            'activeNav' => 'activities',
-            'pageTitle' => 'Aktywności',
+        $html = $this->view->renderPage('activities/index', [
             'rows' => array_slice($activities, 0, 150),
             'totalCount' => count($activities),
             'activityTypes' => ActivityType::cases(),
             'selectedType' => $typeFilter,
-        ]);
+            'now' => $now,
+        ], 'activities', 'Aktywności');
+
+        return new Response($html);
     }
 }

@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Domain\Enum\ActivityType;
 use App\Service\Crm\CrmServiceInterface;
 use App\Service\DealViewFactory;
+use App\Support\View;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,18 +20,22 @@ final class DealController extends AbstractController
         private readonly CrmServiceInterface $crm,
         private readonly DealViewFactory $dealViewFactory,
         private readonly ClockInterface $clock,
+        private readonly View $view,
     ) {
     }
 
     #[Route('/deals/{id}', name: 'deal_show', methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
+        $now = $this->clock->now();
+
         $deal = $this->crm->getDeal($id);
         if ($deal === null) {
-            throw $this->createNotFoundException('Nie znaleziono deala o podanym ID.');
+            $html = $this->view->renderPage('errors/not_found', [], 'deals', 'Nie znaleziono deala');
+
+            return new Response($html, 404);
         }
 
-        $now = $this->clock->now();
         $dealView = $this->dealViewFactory->build($deal, $now);
         $timeline = $this->crm->getDealTimeline($deal->id);
 
@@ -42,13 +47,14 @@ final class DealController extends AbstractController
             ));
         }
 
-        return $this->render('deals/show.html.twig', [
-            'activeNav' => 'deals',
-            'pageTitle' => $dealView->deal->title,
+        $html = $this->view->renderPage('deals/show', [
             'view' => $dealView,
             'timeline' => $timeline,
             'activityTypes' => ActivityType::cases(),
             'selectedType' => $typeFilter,
-        ]);
+            'now' => $now,
+        ], 'deals', $dealView->deal->title);
+
+        return new Response($html);
     }
 }

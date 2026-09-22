@@ -8,6 +8,7 @@ use App\Domain\Model\DealView;
 use App\Service\Crm\CrmServiceInterface;
 use App\Service\DealViewFactory;
 use App\Support\DateHelper;
+use App\Support\View;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,7 @@ final class DashboardController extends AbstractController
         private readonly CrmServiceInterface $crm,
         private readonly DealViewFactory $dealViewFactory,
         private readonly ClockInterface $clock,
+        private readonly View $view,
     ) {
     }
 
@@ -68,9 +70,7 @@ final class DashboardController extends AbstractController
             return $bySeverity !== 0 ? $bySeverity : $b->metrics->daysSinceLastActivity <=> $a->metrics->daysSinceLastActivity;
         });
 
-        return $this->render('dashboard.html.twig', [
-            'activeNav' => 'dashboard',
-            'pageTitle' => 'Dashboard',
+        $html = $this->view->renderPage('dashboard', [
             'activeDealsCount' => count($activeDeals),
             'totalActiveValue' => $totalActiveValue,
             'staleCount' => $staleCount,
@@ -79,6 +79,8 @@ final class DashboardController extends AbstractController
             'doneToday' => $doneToday,
             'plannedToday' => $plannedToday,
             'needsAttention' => array_slice($needsAttention, 0, 12),
-        ]);
+        ], 'dashboard', 'Dashboard');
+
+        return new Response($html);
     }
 }

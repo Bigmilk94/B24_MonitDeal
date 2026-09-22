@@ -6,7 +6,6 @@
     "require": {
         "php": ">=8.4.1",
         "symfony/framework-bundle": "^8.1",
-        "symfony/twig-bundle": "^8.1",
         "symfony/yaml": "^8.1",
         "symfony/dotenv": "^8.1",
         "symfony/runtime": "^8.1",
@@ -16,7 +15,10 @@
     "autoload": {
         "psr-4": {
             "App\\": "src/"
-        }
+        },
+        "files": [
+            "src/Support/helpers.php"
+        ]
     },
     "config": {
         "optimize-autoloader": true,

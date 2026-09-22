@@ -8,6 +8,7 @@ use App\Domain\Model\DealView;
 use App\Service\Crm\CrmServiceInterface;
 use App\Service\DealQueryService;
 use App\Service\DealViewFactory;
+use App\Support\View;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +22,7 @@ final class DealsController extends AbstractController
         private readonly DealViewFactory $dealViewFactory,
         private readonly DealQueryService $query,
         private readonly ClockInterface $clock,
+        private readonly View $view,
     ) {
     }
 
@@ -40,9 +42,7 @@ final class DealsController extends AbstractController
         $companies = array_values($companiesById);
         usort($companies, static fn ($a, $b) => $a->name <=> $b->name);
 
-        return $this->render('deals/index.html.twig', [
-            'activeNav' => 'deals',
-            'pageTitle' => 'Deale',
+        $html = $this->view->renderPage('deals/index', [
             'deals' => $filtered,
             'totalCount' => count($allDeals),
             'filteredCount' => count($filtered),
@@ -51,6 +51,9 @@ final class DealsController extends AbstractController
             'stages' => $this->query->dealStages(),
             'activityTypes' => $this->query->activityTypes(),
             'params' => $request->query->all(),
-        ]);
+            'now' => $now,
+        ], 'deals', 'Deale');
+
+        return new Response($html);
     }
 }

@@ -12,10 +12,15 @@ biznesowej.
 
 ## Stack technologiczny
 
-- **Symfony 8** (`framework-bundle`, `twig-bundle`, `runtime`, `console`,
-  `clock`, `dotenv`, `yaml`) — standardowy szkielet aplikacji: `Kernel`
-  z `MicroKernelTrait`, routing przez atrybuty `#[Route]`, autowiring/DI
-  przez `config/services.yaml`, widoki w Twig.
+- **Symfony 8** (`framework-bundle`, `runtime`, `console`, `clock`,
+  `dotenv`, `yaml`) — standardowy szkielet aplikacji: `Kernel` z
+  `MicroKernelTrait`, routing przez atrybuty `#[Route]`, autowiring/DI
+  przez `config/services.yaml`.
+- **Własna, lekka warstwa `View`** (`App\Support\View`) zamiast Twiga —
+  zwykłe pliki `.php` renderowane przez `require` + buforowanie wyjścia.
+  Kontrolery zwracają `Symfony\Component\HttpFoundation\Response`
+  zbudowany z HTML-a, który zwróci `View`. Symfony daje framework
+  (routing, DI, HTTP, konsolę), a widoki zostają czystym PHP.
 - **PHP 8.4+**, ścisłe typy, `readonly` value objects, `enum`.
 - **Composer** do zależności i autoloadingu PSR-4 (`App\` → `src/`).
 - Czysty CSS (bez frameworków JS/CSS) + kilkanaście linii vanilla JS do
@@ -26,10 +31,11 @@ biznesowej.
 ```
 bin/console              konsola Symfony (cache:clear, debug:router, ...)
 config/
-  bundles.php            włączone bundle'e (FrameworkBundle, TwigBundle)
-  packages/              framework.yaml, twig.yaml
+  bundles.php            włączone bundle'e (tylko FrameworkBundle — bez Twiga)
+  packages/framework.yaml
   routes.yaml             import tras z atrybutów #[Route] w src/Controller
-  services.yaml           autowiring/autoconfigure + alias CrmServiceInterface
+  services.yaml           autowiring/autoconfigure, bind $templatesDir dla
+                          View, alias CrmServiceInterface
 public/                  punkt wejścia HTTP (front controller) + assets
   index.php              front controller Symfony (symfony/runtime)
   router.php             front controller dla `php -S` (dev server)
@@ -55,13 +61,17 @@ src/
     DealQueryService.php         filtrowanie / wyszukiwanie / sortowanie
   Controller/              DashboardController, DealsController,
                            DealController, ActivitiesController,
-                           TasksController — kontrolery Symfony z #[Route]
-  Twig/AppExtension.php    filtry `money`/`date_pl`/`datetime_pl` i funkcja
-                           `merge_query()` używane w szablonach
-  Support/                 DateHelper, TimeFormatter (framework-agnostic,
-                           używane też bezpośrednio przez logikę biznesową)
+                           TasksController — kontrolery Symfony z #[Route],
+                           renderują przez App\Support\View
+  Support/
+    View.php               render()/renderPage()/partial() — cała
+                           "templatka" bez Twiga
+    helpers.php             globalne funkcje e()/money()/qs() używane
+                           w szablonach
+    DateHelper.php, TimeFormatter.php — framework-agnostic, używane też
+                           bezpośrednio przez logikę biznesową
 
-templates/                widoki Twig (wyłącznie prezentacja)
+templates/                widoki w czystym PHP (wyłącznie prezentacja)
 tests/run-tests.php        lekki, bezzależnościowy zestaw testów
 ```
 
@@ -79,10 +89,18 @@ tests/run-tests.php        lekki, bezzależnościowy zestaw testów
   wykrywanie flag, filtrowanie. Zwykłe, framework-agnostic klasy PHP —
   Symfony tylko je autowire'uje, nic więcej.
 - **Controller/** — cienkie kontrolery Symfony (`AbstractController` +
-  `#[Route]`): pobierają dane przez `CrmServiceInterface`/serwisy i
-  renderują widok Twig. Nie zawierają logiki liczenia niczego.
+  `#[Route]`): pobierają dane przez `CrmServiceInterface`/serwisy, oddają
+  je do `View::renderPage()` i zwracają wynik jako `Response`. Nie
+  zawierają logiki liczenia niczego.
+- **Support/View** — malutki, w pełni własny odpowiednik silnika
+  szablonów: `render()` włącza plik `.php` przez `require` z buforowaniem
+  wyjścia, `renderPage()` owija go w `templates/layout.php`, `partial()`
+  to skrót do `templates/partials/*.php`. Zero zależności, zero magii.
 - **templates/** — wyłącznie prezentacja (żadnych `if ($count > 7)` — to
-  już jest gotowa flaga z `DealMetrics`).
+  już jest gotowa flaga z `DealMetrics`); korzystają z globalnych funkcji
+  `e()` (escapowanie HTML), `money()` (formatowanie kwot) i `qs()`
+  (budowanie query stringu z zachowaniem aktualnych filtrów) z
+  `Support/helpers.php`.
 
 ## Model danych
 

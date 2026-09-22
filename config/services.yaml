@@ -4,12 +4,17 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            # App\Support\View renders plain-PHP templates itself — no Twig
+            # involved. It just needs to know where templates/ lives.
+            $templatesDir: '%kernel.project_dir%/templates'
 
     App\:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
             - '../src/Domain/'
+            - '../src/Support/helpers.php'
 
     # Single composition point for the CRM adapter: swap this alias to a real
     # implementation (e.g. a Bitrix24 client) and nothing else in the app

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Domain\Model\TaskActivity;
 use App\Service\Crm\CrmServiceInterface;
+use App\Support\View;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +22,7 @@ final class TasksController extends AbstractController
     public function __construct(
         private readonly CrmServiceInterface $crm,
         private readonly ClockInterface $clock,
+        private readonly View $view,
     ) {
     }
 
@@ -62,12 +64,12 @@ final class TasksController extends AbstractController
             return $aDate <=> $bDate;
         });
 
-        return $this->render('tasks/index.html.twig', [
-            'activeNav' => 'tasks',
-            'pageTitle' => 'Zadania',
+        $html = $this->view->renderPage('tasks/index', [
             'rows' => $rows,
             'selectedStatus' => $status,
             'now' => $now,
-        ]);
+        ], 'tasks', 'Zadania');
+
+        return new Response($html);
     }
 }
