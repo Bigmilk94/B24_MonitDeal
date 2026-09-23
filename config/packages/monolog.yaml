@@ -1,0 +1,16 @@
+monolog:
+    channels:
+        - deprecation
+    handlers:
+        # Wszystko (w tym błędy PHP zgłaszane przez framework.php_errors.log)
+        # trafia do jednego pliku w var/log/ — łatwego do podejrzenia przez
+        # WinSCP na hostingu bez dostępu do konsoli/SSH.
+        main:
+            type: stream
+            path: '%kernel.logs_dir%/%kernel.environment%.log'
+            level: debug
+            channels: ['!event', '!deprecation']
+        deprecation:
+            type: stream
+            path: '%kernel.logs_dir%/%kernel.environment%.deprecations.log'
+            channels: [deprecation]
