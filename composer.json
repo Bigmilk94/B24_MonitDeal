@@ -22,7 +22,8 @@
         "symfony/cache": "^6.4",
         "symfony/string": "^6.4",
         "symfony/var-dumper": "^6.4",
-        "symfony/var-exporter": "^6.4"
+        "symfony/var-exporter": "^6.4",
+        "symfony/http-client": "^6.4"
     },
     "autoload": {
         "psr-4": {

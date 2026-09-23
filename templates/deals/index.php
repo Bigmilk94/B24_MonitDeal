@@ -5,7 +5,7 @@
  * @var int $filteredCount
  * @var list<\App\Domain\Model\User> $owners
  * @var list<\App\Domain\Model\Company> $companies
- * @var list<\App\Domain\Enum\DealStage> $stages
+ * @var list<\App\Domain\Model\DealStage> $stages
  * @var list<\App\Domain\Enum\ActivityType> $activityTypes
  * @var array<string, mixed> $params
  * @var \DateTimeImmutable $now

@@ -17,5 +17,8 @@
         <a href="<?= e($base) ?>/tasks" class="nav-item <?= $activeNav === 'tasks' ? 'is-active' : '' ?>">
             <span class="nav-icon">✅</span> Zadania
         </a>
+        <a href="<?= e($base) ?>/ustawienia" class="nav-item <?= $activeNav === 'settings' ? 'is-active' : '' ?>">
+            <span class="nav-icon">⚙️</span> Ustawienia
+        </a>
     </nav>
 </aside>

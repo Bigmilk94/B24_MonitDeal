@@ -331,6 +331,96 @@ check('getDeal zwraca null dla nieistniejącego ID', function () use ($crm) {
 }, $failures, $passed);
 
 // ---------------------------------------------------------------------
+echo "\n== DealStage (wartość, nie tożsamość obiektu) ==\n";
+
+check('dwie osobne instancje tego samego etapu są sobie równe przez equals()', function () {
+    $a = new \App\Domain\Model\DealStage('c1:won', 'Wygrany', \App\Domain\Enum\DealSemantic::WON);
+    $b = new \App\Domain\Model\DealStage('c1:won', 'Wygrany (inna etykieta)', \App\Domain\Enum\DealSemantic::WON);
+    assertTrue($a->equals($b), 'DealStage o tym samym value powinny być equals() niezależnie od etykiety');
+    assertTrue($a !== $b, 'to muszą być różne obiekty (identity), żeby test miał sens');
+}, $failures, $passed);
+
+check('isOpen/isWon/isLost odpowiadają semantyce', function () {
+    $open = new \App\Domain\Model\DealStage('x', 'X', \App\Domain\Enum\DealSemantic::OPEN);
+    $won = new \App\Domain\Model\DealStage('y', 'Y', \App\Domain\Enum\DealSemantic::WON);
+    $lost = new \App\Domain\Model\DealStage('z', 'Z', \App\Domain\Enum\DealSemantic::LOST);
+    assertTrue($open->isOpen() && !$open->isWon() && !$open->isLost(), 'OPEN');
+    assertTrue($won->isWon() && !$won->isOpen() && !$won->isLost(), 'WON');
+    assertTrue($lost->isLost() && !$lost->isOpen() && !$lost->isWon(), 'LOST');
+}, $failures, $passed);
+
+// ---------------------------------------------------------------------
+echo "\n== PortalConfig ==\n";
+
+check('includesFunnel zwraca true dla wszystkiego, gdy lista jest pusta', function () {
+    $config = new \App\Bitrix24\Model\PortalConfig([]);
+    assertTrue($config->includesFunnel(0), 'pusta lista funnelIds = wszystkie lejki');
+    assertTrue($config->includesFunnel(42), 'pusta lista funnelIds = wszystkie lejki');
+}, $failures, $passed);
+
+check('includesFunnel respektuje jawną listę', function () {
+    $config = new \App\Bitrix24\Model\PortalConfig([1, 3]);
+    assertTrue($config->includesFunnel(1), 'funnel 1 jest na liście');
+    assertTrue(!$config->includesFunnel(2), 'funnel 2 nie jest na liście');
+}, $failures, $passed);
+
+check('PortalConfig przeżywa round-trip przez toArray/fromArray', function () {
+    $config = new \App\Bitrix24\Model\PortalConfig([1, 2], ['c1:lost' => 'won']);
+    $restored = \App\Bitrix24\Model\PortalConfig::fromArray($config->toArray());
+    assertSame($config->funnelIds, $restored->funnelIds, 'funnelIds musi przetrwać serializację');
+    assertSame($config->stageSemanticOverrides, $restored->stageSemanticOverrides, 'overrides muszą przetrwać serializację');
+}, $failures, $passed);
+
+// ---------------------------------------------------------------------
+echo "\n== PortalRepository (plik JSON zamiast bazy danych) ==\n";
+
+check('save() + find() zwraca ten sam portal', function () {
+    $tmpFile = sys_get_temp_dir() . '/monitdeal-test-portals-' . uniqid() . '.json';
+    try {
+        $repo = new \App\Bitrix24\PortalRepository($tmpFile);
+        $now = new DateTimeImmutable('2026-01-01 10:00:00');
+        $portal = new \App\Bitrix24\Model\Portal(
+            'member-123',
+            'test.bitrix24.pl',
+            'https://test.bitrix24.pl/rest/',
+            'access-token-abc',
+            'refresh-token-xyz',
+            $now->modify('+1 hour'),
+            $now,
+            new \App\Bitrix24\Model\PortalConfig([1, 2]),
+        );
+        $repo->save($portal);
+
+        $found = $repo->find('member-123');
+        assertTrue($found !== null, 'portal powinien zostać znaleziony po zapisie');
+        assertSame('test.bitrix24.pl', $found->domain, 'domain musi się zgadzać');
+        assertSame('access-token-abc', $found->accessToken, 'accessToken musi się zgadzać');
+        assertSame([1, 2], $found->config->funnelIds, 'config musi przetrwać zapis/odczyt');
+
+        assertTrue($repo->find('nope') === null, 'nieistniejący portal powinien dać null');
+
+        $repo->delete('member-123');
+        assertTrue($repo->find('member-123') === null, 'po delete() portal nie powinien być znajdowalny');
+    } finally {
+        @unlink($tmpFile);
+    }
+}, $failures, $passed);
+
+check('isAccessTokenExpired poprawnie klasyfikuje przeszłość i przyszłość', function () {
+    $now = new DateTimeImmutable('2026-01-01 12:00:00');
+    $portal = new \App\Bitrix24\Model\Portal(
+        'm', 'd.bitrix24.pl', 'https://d.bitrix24.pl/rest/', 'a', 'r',
+        $now->modify('-1 minute'),
+        $now,
+        new \App\Bitrix24\Model\PortalConfig(),
+    );
+    assertTrue($portal->isAccessTokenExpired($now), 'token z datą wygaśnięcia w przeszłości powinien być expired');
+
+    $fresh = $portal->withTokens('a2', 'r2', $now->modify('+1 hour'));
+    assertTrue(!$fresh->isAccessTokenExpired($now), 'token ważny jeszcze godzinę nie powinien być expired');
+}, $failures, $passed);
+
+// ---------------------------------------------------------------------
 echo "\n---\n";
 echo "Zaliczone: {$passed}\n";
 echo 'Nieudane: ' . count($failures) . "\n";

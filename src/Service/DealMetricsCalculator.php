@@ -96,7 +96,7 @@ final class DealMetricsCalculator
     {
         $latest = null;
         foreach ($activities as $activity) {
-            if (!$activity instanceof StageChangeActivity || $activity->toStage !== $deal->stage) {
+            if (!$activity instanceof StageChangeActivity || !$activity->toStage->equals($deal->stage)) {
                 continue;
             }
             if ($latest === null || $activity->changedAt > $latest) {

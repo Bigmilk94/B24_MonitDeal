@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Crm;
 
-use App\Domain\Enum\DealStage;
+use App\Domain\Enum\DealSemantic;
 use App\Domain\Enum\EmailDirection;
 use App\Domain\Enum\SchedulableState;
 use App\Domain\Enum\TaskState;
@@ -14,6 +14,7 @@ use App\Domain\Model\CommentActivity;
 use App\Domain\Model\Company;
 use App\Domain\Model\Contact;
 use App\Domain\Model\Deal;
+use App\Domain\Model\DealStage;
 use App\Domain\Model\EmailActivity;
 use App\Domain\Model\MeetingActivity;
 use App\Domain\Model\NoteActivity;
@@ -56,10 +57,21 @@ final class DemoDataGenerator
 
     private int $activitySeq = 1;
 
+    /** @var array<string, DealStage> Demo funnel stages, keyed by their (fake) STATUS_ID. */
+    private readonly array $stages;
+
     public function __construct(?DateTimeImmutable $now = null)
     {
         $this->rng = new SeededRandom(self::SEED);
         $this->now = $now ?? new DateTimeImmutable('now');
+        $this->stages = [
+            'new' => new DealStage('new', 'Nowy', DealSemantic::OPEN),
+            'qualification' => new DealStage('qualification', 'Kwalifikacja', DealSemantic::OPEN),
+            'proposal' => new DealStage('proposal', 'Oferta wysłana', DealSemantic::OPEN),
+            'negotiation' => new DealStage('negotiation', 'Negocjacje', DealSemantic::OPEN),
+            'won' => new DealStage('won', 'Wygrany', DealSemantic::WON),
+            'lost' => new DealStage('lost', 'Przegrany', DealSemantic::LOST),
+        ];
     }
 
     /**
@@ -152,32 +164,33 @@ final class DemoDataGenerator
      */
     private function dealBlueprints(): array
     {
+        $s = $this->stages;
         // [title, companyId, contactId, stage, ownerIndex]
         return [
-            ['Wdrożenie systemu ERP', 'c1', 'ct1', DealStage::NEGOTIATION, 0],
-            ['Modernizacja infrastruktury IT', 'c1', 'ct2', DealStage::PROPOSAL, 1],
-            ['Budowa hali magazynowej', 'c2', 'ct3', DealStage::QUALIFICATION, 2],
-            ['Remont biurowca przy ul. Długiej', 'c2', 'ct3', DealStage::NEW, 3],
-            ['Rozbudowa floty chłodni', 'c3', 'ct4', DealStage::NEGOTIATION, 4],
-            ['Wdrożenie WMS w centrum dystrybucji', 'c3', 'ct4', DealStage::PROPOSAL, 5],
-            ['Dostawa sprzętu diagnostycznego', 'c4', 'ct5', DealStage::QUALIFICATION, 0],
-            ['System zarządzania dokumentacją medyczną', 'c4', 'ct5', DealStage::NEW, 1],
-            ['Instalacja paneli fotowoltaicznych', 'c5', 'ct6', DealStage::NEGOTIATION, 2],
-            ['Farma wiatrowa — etap konsultacji', 'c5', 'ct6', DealStage::QUALIFICATION, 3],
-            ['Modernizacja linii produkcyjnej', 'c6', 'ct7', DealStage::PROPOSAL, 4],
-            ['Audyt bezpieczeństwa maszyn', 'c6', 'ct8', DealStage::NEW, 5],
-            ['Wdrożenie platformy e-learningowej', 'c7', 'ct9', DealStage::NEGOTIATION, 0],
-            ['Licencje na oprogramowanie edukacyjne', 'c7', 'ct9', DealStage::PROPOSAL, 1],
-            ['Doradztwo podatkowe na 2026 rok', 'c8', 'ct10', DealStage::QUALIFICATION, 2],
-            ['Restrukturyzacja finansowa spółki', 'c8', 'ct10', DealStage::NEW, 3],
-            ['Integracja CRM z systemem księgowym', 'c1', 'ct1', DealStage::QUALIFICATION, 4],
-            ['Zakup serwerów dla data center', 'c1', 'ct2', DealStage::NEGOTIATION, 5],
-            ['Budowa parkingu wielopoziomowego', 'c2', 'ct3', DealStage::PROPOSAL, 0],
-            ['Transport chłodniczy — kontrakt roczny', 'c3', 'ct4', DealStage::NEW, 1],
-            ['Sprzęt do sal operacyjnych', 'c4', 'ct5', DealStage::NEGOTIATION, 2],
-            ['Magazyn energii dla zakładu produkcyjnego', 'c5', 'ct6', DealStage::WON, 3],
-            ['Przegląd techniczny pieców hutniczych', 'c6', 'ct7', DealStage::WON, 4],
-            ['Program szkoleń wewnętrznych', 'c7', 'ct9', DealStage::LOST, 5],
+            ['Wdrożenie systemu ERP', 'c1', 'ct1', $s['negotiation'], 0],
+            ['Modernizacja infrastruktury IT', 'c1', 'ct2', $s['proposal'], 1],
+            ['Budowa hali magazynowej', 'c2', 'ct3', $s['qualification'], 2],
+            ['Remont biurowca przy ul. Długiej', 'c2', 'ct3', $s['new'], 3],
+            ['Rozbudowa floty chłodni', 'c3', 'ct4', $s['negotiation'], 4],
+            ['Wdrożenie WMS w centrum dystrybucji', 'c3', 'ct4', $s['proposal'], 5],
+            ['Dostawa sprzętu diagnostycznego', 'c4', 'ct5', $s['qualification'], 0],
+            ['System zarządzania dokumentacją medyczną', 'c4', 'ct5', $s['new'], 1],
+            ['Instalacja paneli fotowoltaicznych', 'c5', 'ct6', $s['negotiation'], 2],
+            ['Farma wiatrowa — etap konsultacji', 'c5', 'ct6', $s['qualification'], 3],
+            ['Modernizacja linii produkcyjnej', 'c6', 'ct7', $s['proposal'], 4],
+            ['Audyt bezpieczeństwa maszyn', 'c6', 'ct8', $s['new'], 5],
+            ['Wdrożenie platformy e-learningowej', 'c7', 'ct9', $s['negotiation'], 0],
+            ['Licencje na oprogramowanie edukacyjne', 'c7', 'ct9', $s['proposal'], 1],
+            ['Doradztwo podatkowe na 2026 rok', 'c8', 'ct10', $s['qualification'], 2],
+            ['Restrukturyzacja finansowa spółki', 'c8', 'ct10', $s['new'], 3],
+            ['Integracja CRM z systemem księgowym', 'c1', 'ct1', $s['qualification'], 4],
+            ['Zakup serwerów dla data center', 'c1', 'ct2', $s['negotiation'], 5],
+            ['Budowa parkingu wielopoziomowego', 'c2', 'ct3', $s['proposal'], 0],
+            ['Transport chłodniczy — kontrakt roczny', 'c3', 'ct4', $s['new'], 1],
+            ['Sprzęt do sal operacyjnych', 'c4', 'ct5', $s['negotiation'], 2],
+            ['Magazyn energii dla zakładu produkcyjnego', 'c5', 'ct6', $s['won'], 3],
+            ['Przegląd techniczny pieców hutniczych', 'c6', 'ct7', $s['won'], 4],
+            ['Program szkoleń wewnętrznych', 'c7', 'ct9', $s['lost'], 5],
         ];
     }
 
@@ -296,7 +309,12 @@ final class DemoDataGenerator
 
             // Stage-change history: give every deal that isn't brand new a
             // believable "moved to current stage N days ago" event.
-            $openStages = DealStage::openStages();
+            $openStages = [
+                $this->stages['new'],
+                $this->stages['qualification'],
+                $this->stages['proposal'],
+                $this->stages['negotiation'],
+            ];
             $currentStageOrdinal = array_search($stage, $openStages, true);
             if ($currentStageOrdinal === false) {
                 $currentStageOrdinal = count($openStages) - 1;
@@ -304,7 +322,7 @@ final class DemoDataGenerator
             if ($profile['level'] !== 'none' && ($currentStageOrdinal > 0 || $isClosed)) {
                 $maxDaysAgo = max($createdDaysAgo - 1, 1);
                 $stageChangedDaysAgo = min($maxDaysAgo, $this->rng->getInt(2, 45));
-                $fromStage = $currentStageOrdinal > 0 ? $openStages[$currentStageOrdinal - 1] : DealStage::NEW;
+                $fromStage = $currentStageOrdinal > 0 ? $openStages[$currentStageOrdinal - 1] : $this->stages['new'];
                 $activities[] = new StageChangeActivity(
                     $this->nextActivityId(),
                     $dealId,

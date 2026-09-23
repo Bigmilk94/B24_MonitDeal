@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Domain\Enum\ActivityType;
-use App\Domain\Enum\DealStage;
 use App\Domain\Model\DealView;
 use DateTimeImmutable;
 
@@ -251,13 +250,5 @@ final class DealQueryService
     public function activityTypes(): array
     {
         return ActivityType::cases();
-    }
-
-    /**
-     * @return list<DealStage>
-     */
-    public function dealStages(): array
-    {
-        return DealStage::cases();
     }
 }

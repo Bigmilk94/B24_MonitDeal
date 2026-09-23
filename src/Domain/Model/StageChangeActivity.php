@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Model;
 
 use App\Domain\Enum\ActivityType;
-use App\Domain\Enum\DealStage;
 use DateTimeImmutable;
 
 final class StageChangeActivity extends Activity

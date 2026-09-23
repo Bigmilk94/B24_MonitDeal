@@ -6,3 +6,10 @@ framework:
         log: true
     router:
         utf8: true
+    session:
+        # The app runs inside a Bitrix24 iframe (a cross-site context from
+        # the browser's point of view), so the session cookie needs
+        # SameSite=None + Secure or browsers will silently drop it.
+        cookie_secure: true
+        cookie_samesite: none
+        cookie_httponly: true

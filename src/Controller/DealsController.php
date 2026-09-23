@@ -42,13 +42,22 @@ final class DealsController extends AbstractController
         $companies = array_values($companiesById);
         usort($companies, static fn ($a, $b) => $a->name <=> $b->name);
 
+        // Stages aren't a fixed universe once real CRM data is involved
+        // (Bitrix24 funnels have arbitrary, portal-specific stages) — the
+        // filter dropdown offers whatever stages actually occur right now.
+        $stagesByValue = [];
+        foreach ($allDeals as $view) {
+            $stagesByValue[$view->deal->stage->value] = $view->deal->stage;
+        }
+        $stages = array_values($stagesByValue);
+
         $html = $this->view->renderPage('deals/index', [
             'deals' => $filtered,
             'totalCount' => count($allDeals),
             'filteredCount' => count($filtered),
             'owners' => $owners,
             'companies' => $companies,
-            'stages' => $this->query->dealStages(),
+            'stages' => $stages,
             'activityTypes' => $this->query->activityTypes(),
             'params' => $request->query->all(),
             'now' => $now,

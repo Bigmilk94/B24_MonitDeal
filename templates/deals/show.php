@@ -10,8 +10,8 @@ $deal = $view->deal;
 $m = $view->metrics;
 $progress = $m->progressPercent();
 $stageClass = match (true) {
-    $deal->stage === \App\Domain\Enum\DealStage::WON => 'is-won',
-    $deal->stage === \App\Domain\Enum\DealStage::LOST => 'is-lost',
+    $deal->stage->isWon() => 'is-won',
+    $deal->stage->isLost() => 'is-lost',
     default => '',
 };
 ?>

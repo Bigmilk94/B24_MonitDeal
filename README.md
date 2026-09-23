@@ -213,35 +213,92 @@ każdego deala), poprawność "ostatniej aktywności" i "następnego działania"
 chronologię timeline'u, działanie filtrów/wyszukiwania/sortowania oraz
 obecność wymaganych scenariuszy w danych demo.
 
-## Podłączenie prawdziwego CRM (np. Bitrix24)
+## Aplikacja lokalna Bitrix24
 
-1. Utwórz nową klasę, np. `src/Service/Crm/Bitrix24CrmService.php`,
-   implementującą `CrmServiceInterface`.
-2. Zmapuj odpowiedzi API Bitrix24 (`crm.deal.list`, `crm.activity.list`,
-   `crm.company.get`, `crm.contact.get`, `user.get` itd.) na istniejące
-   modele domenowe (`Deal`, `Activity` + podklasy, `Company`, `Contact`,
-   `User`).
-3. W `config/services.yaml` podmień jeden alias:
-   ```yaml
-   # było:
-   App\Service\Crm\CrmServiceInterface: '@App\Service\Crm\MockCrmService'
-   # →
-   App\Service\Crm\CrmServiceInterface: '@App\Service\Crm\Bitrix24CrmService'
+MonitDeal instaluje się jako **aplikacja lokalna** w Twoim Bitrix24 —
+prawdziwe deale/aktywności/zadania zamiast danych demo, plus panel
+ustawień do wyboru lejków. Architektonicznie:
 
-   App\Service\Crm\Bitrix24CrmService:
-       arguments:
-           $webhookUrl: '%env(BITRIX24_WEBHOOK_URL)%'
-   ```
-   (parametr `BITRIX24_WEBHOOK_URL` dodaj w `.env`/`.env.local` — sekrety
-   nigdy w `.env` commitowanym do repo).
-4. Nic więcej się nie zmienia — kontrolery, `DealMetricsCalculator`,
-   `DealQueryService` i wszystkie widoki pracują wyłącznie na interfejsie
-   `CrmServiceInterface` i modelach domenowych, nie na konkretnej
-   implementacji ani na Symfony.
+- `App\Bitrix24\Bitrix24HandshakeSubscriber` — nasłuchuje na
+  `kernel.request`. Bitrix24 przy *każdym* otwarciu aplikacji (nie tylko
+  przy instalacji) POST-uje świeże `AUTH_ID`/`REFRESH_ID`/`member_id`/
+  `DOMAIN` prosto pod zarejestrowany adres aplikacji. Subscriber
+  weryfikuje token przez realne wywołanie `profile` w danym portalu (żeby
+  odrzucić sfałszowane żądania), zapisuje/aktualizuje rekord portalu i
+  uruchamia sesję — po czym request "wygląda" jak zwykłe GET i trafia do
+  normalnego routingu.
+- `App\Bitrix24\PortalRepository` — jeden plik JSON (`var/storage/portals.json`)
+  zamiast bazy danych: tokeny OAuth + konfiguracja per portal.
+- `App\Bitrix24\Bitrix24Client` — cienki klient REST (na `symfony/http-client`)
+  z automatycznym odświeżaniem tokenu.
+- `App\Bitrix24\Bitrix24FunnelService` — czyta lejki (`crm.category.list`)
+  i etapy (`crm.status.list`) wraz z semantyką Bitrix24 (w toku/wygrany/
+  przegrany).
+- `App\Service\Crm\Bitrix24CrmService` — właściwy adapter `CrmServiceInterface`,
+  mapuje `crm.deal.list`/`crm.company.get`/`crm.contact.get`/`user.get`/
+  `crm.activity.list`/`tasks.task.list` na modele domenowe.
+- `App\Service\Crm\PortalAwareCrmService` (to on jest wpięty jako
+  `CrmServiceInterface` w `config/services.yaml`) — jeśli bieżący request
+  ma aktywną sesję portalu, deleguje do `Bitrix24CrmService`; w
+  przeciwnym razie do `MockCrmService` — więc ten sam adres działa
+  zarówno jako prawdziwa aplikacja Bitrix24, jak i samodzielne demo.
+- `/ustawienia` (`SettingsController`) — panel wyboru lejków + korekty
+  semantyki etapów, widoczny tylko w kontekście aktywnego portalu.
 
-Warto dodać cache (np. plikowy/APCu) wokół wywołań realnego API w nowym
-adapterze — dziś `MockCrmService` generuje dane w pamięci przy każdym
-żądaniu, co dla prawdziwego, wolniejszego API nie byłoby pożądane.
+### Rejestracja i instalacja
+
+1. W Bitrix24: **Zasoby deweloperskie → Inne → Aplikacja lokalna**.
+2. Adres aplikacji (handler URL) = dokładnie adres, pod którym stoi
+   dashboard (np. `https://twojadomena.pl/`) — Bitrix24 POST-uje tam przy
+   każdym otwarciu, a subscriber nasłuchuje globalnie, więc handler i
+   dashboard muszą być tym samym adresem. Uprawnienia: `crm`, `tasks`, `user`.
+3. Wpisz `BITRIX24_CLIENT_ID`/`BITRIX24_CLIENT_SECRET` (z rejestracji) w
+   `.env.local` na serwerze (nigdy w `.env` commitowanym do repo).
+4. Otwórz aplikację z poziomu portalu — pierwsze otwarcie samo
+   "instaluje" portal (zapisuje token w `var/storage/portals.json`).
+5. Wejdź w **Ustawienia** i wybierz lejki do śledzenia.
+
+### Stan mapowania pól
+
+Pola i kody enumów w `Bitrix24CrmService` są zweryfikowane względem
+oficjalnej dokumentacji REST API Bitrix24 (github.com/bitrix24/b24restdocs),
+nie zgadywane — m.in.: `crm.activity` `TYPE_ID` (1=spotkanie, 2=telefon,
+4=e-mail), `DIRECTION` (1=przychodzący, 2=wychodzący), `OWNER_TYPE_ID=2`
+dla deali (filtrowanie przez `BINDINGS`, zgodnie z oficjalnym tutorialem),
+semantyka etapu w `crm.status.list` (`SEMANTICS`: `null`=w toku,
+`"S"`=wygrany, `"F"`=przegrany), oraz że `tasks.task.list` zwraca pola w
+camelCase (`responsibleId`, `closedDate`...), mimo że filtr przyjmuje
+UPPER_SNAKE — mapper obsługuje obie konwencje.
+
+Świadome uproszczenia (do rozważenia później, nie błędy):
+
+- Używane jest pojedyncze pole `CONTACT_ID` (Bitrix24 oznacza je jako
+  "przestarzałe, zachowane dla kompatybilności" na rzecz wielokrotnego
+  `CONTACT_IDS` przez `crm.item.list`) — wystarczające dla typowego
+  jednego kontaktu na deal, ale przy wielu kontaktach na deal u pokaże
+  tylko główny.
+- `crm.company.get`/`crm.contact.get` są podobnie oznaczone jako
+  przestarzałe na rzecz uniwersalnego `crm.item.get` — nadal w pełni
+  działają, po prostu nie są już rekomendowanym kierunkiem rozwoju API.
+- Brak obsługi niestandardowych/dodatkowych integracji telefonii
+  (np. VoIP) z innymi kodami `TYPE_ID` niż udokumentowane.
+
+Każdy portal może mieć własne pola niestandardowe lub nietypową
+konfigurację lejków, których nie widać w ogólnej dokumentacji — jeśli po
+instalacji coś się nie zgadza, daj znać, co dokładnie widzisz źle, a
+dopasujemy mapowanie do Twojego portalu.
+
+### Ograniczenia integracji Bitrix24
+
+- Brak obsługi zdarzenia `ONAPPUNINSTALL` — po odinstalowaniu aplikacji w
+  Bitrix24 rekord portalu (z nieważnym już tokenem) zostaje w
+  `var/storage/portals.json` aż do ręcznego usunięcia.
+- Sesja (ciasteczko) wymaga `Secure` + `SameSite=None` (bo appka działa w
+  iframe) — więc **wdrożenie musi być pod HTTPS**, inaczej sesja się nie
+  utrzyma między kliknięciami w menu.
+- Brak własnego cache'owania odpowiedzi REST — każde odświeżenie
+  dashboardu odpytuje Bitrix24 na nowo (wystarczające przy rozsądnej
+  liczbie deali; przy bardzo dużych portalach warto dodać cache).
 
 ## Znane ograniczenia
 
