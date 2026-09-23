@@ -13,3 +13,9 @@ framework:
         cookie_secure: true
         cookie_samesite: none
         cookie_httponly: true
+        # PHP's default session.save_path is sometimes unwritable on locked-
+        # down shared hosting (e.g. open_basedir excludes it), causing a
+        # hard-to-diagnose 500 the moment a session is actually started —
+        # which for this app is exactly the Bitrix24 install/open handshake.
+        # Store sessions inside our own already-writable var/ instead.
+        save_path: '%kernel.project_dir%/var/sessions'
