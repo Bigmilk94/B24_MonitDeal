@@ -20,9 +20,8 @@ use App\Domain\Model\NoteActivity;
 use App\Domain\Model\StageChangeActivity;
 use App\Domain\Model\TaskActivity;
 use App\Domain\Model\User;
+use App\Support\SeededRandom;
 use DateTimeImmutable;
-use Random\Engine\Mt19937;
-use Random\Randomizer;
 
 /**
  * Builds a deterministic, realistic-looking demo dataset: companies,
@@ -37,7 +36,7 @@ final class DemoDataGenerator
 {
     private const SEED = 20260916;
 
-    private readonly Randomizer $rng;
+    private readonly SeededRandom $rng;
     private readonly DateTimeImmutable $now;
 
     /** @var list<User> */
@@ -59,7 +58,7 @@ final class DemoDataGenerator
 
     public function __construct(?DateTimeImmutable $now = null)
     {
-        $this->rng = new Randomizer(new Mt19937(self::SEED));
+        $this->rng = new SeededRandom(self::SEED);
         $this->now = $now ?? new DateTimeImmutable('now');
     }
 

@@ -12,7 +12,7 @@ biznesowej.
 
 ## Stack technologiczny
 
-- **Symfony 8** (`framework-bundle`, `runtime`, `console`, `clock`,
+- **Symfony 6.4 LTS** (`framework-bundle`, `runtime`, `console`, `clock`,
   `dotenv`, `yaml`) — standardowy szkielet aplikacji: `Kernel` z
   `MicroKernelTrait`, routing przez atrybuty `#[Route]`, autowiring/DI
   przez `config/services.yaml`.
@@ -21,7 +21,10 @@ biznesowej.
   Kontrolery zwracają `Symfony\Component\HttpFoundation\Response`
   zbudowany z HTML-a, który zwróci `View`. Symfony daje framework
   (routing, DI, HTTP, konsolę), a widoki zostają czystym PHP.
-- **PHP 8.4+**, ścisłe typy, `readonly` value objects, `enum`.
+- **PHP 8.1+** (celowo — działa też na tańszym hostingu bez najnowszego
+  PHP), ścisłe typy, `readonly` value objects, `enum`. Dane demo generuje
+  własny, zależny-od-niczego `SeededRandom` (xorshift32), a nie PHP 8.2+
+  `Random\Randomizer` — żeby nie podnosić wymagania wersji PHP bez potrzeby.
 - **Composer** do zależności i autoloadingu PSR-4 (`App\` → `src/`).
 - Czysty CSS (bez frameworków JS/CSS) + kilkanaście linii vanilla JS do
   przełącznika light/dark mode.
@@ -171,7 +174,7 @@ generatora jest stałe) — dashboard nie "skacze" między odświeżeniami.
 
 ## Uruchomienie
 
-Wymagany PHP ≥ 8.4 i Composer.
+Wymagany PHP ≥ 8.1 i Composer.
 
 ```bash
 composer install
