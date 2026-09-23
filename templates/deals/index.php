@@ -45,7 +45,7 @@ $selectedCompanies = $asArray($params['company'] ?? null);
     <?php endforeach; ?>
 </div>
 
-<form class="filters-panel" method="get" action="/deals">
+<form class="filters-panel" method="get" action="<?= e(base_path()) ?>/deals">
     <input type="hidden" name="q" value="<?= e($params['q'] ?? '') ?>">
     <input type="hidden" name="sort" value="<?= e($currentSort) ?>">
     <input type="hidden" name="dir" value="<?= e($currentDir) ?>">
@@ -139,7 +139,7 @@ $selectedCompanies = $asArray($params['company'] ?? null);
 
     <div class="filters-actions">
         <button type="submit" class="btn btn-primary">Zastosuj filtry</button>
-        <a class="btn" href="/deals">Wyczyść</a>
+        <a class="btn" href="<?= e(base_path()) ?>/deals">Wyczyść</a>
     </div>
 </form>
 

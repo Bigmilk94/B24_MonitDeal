@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($pageTitle) ?> — MonitDeal</title>
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="<?= e(base_path()) ?>/assets/css/app.css">
 <script>
 (function () {
     try {
@@ -26,6 +26,6 @@
         </main>
     </div>
 </div>
-<script src="/assets/js/app.js"></script>
+<script src="<?= e(base_path()) ?>/assets/js/app.js"></script>
 </body>
 </html>

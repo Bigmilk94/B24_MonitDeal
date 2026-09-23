@@ -41,7 +41,7 @@
                 „<?= e($activity->title) ?>”
                 <?php if ($activity->description !== null): ?><div class="activity-desc"><?= e($activity->description) ?></div><?php endif; ?>
             </td>
-            <td class="cell-deal"><a class="deal-link" href="/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a></td>
+            <td class="cell-deal"><a class="deal-link" href="<?= e(base_path()) ?>/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a></td>
             <td><?= e($activity->performedBy->name) ?></td>
             <td>
                 <?php if ($activity->isCompleted()): ?>

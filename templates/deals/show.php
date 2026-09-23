@@ -15,7 +15,7 @@ $stageClass = match (true) {
     default => '',
 };
 ?>
-<a class="back-link" href="/deals">← Wróć do listy deali</a>
+<a class="back-link" href="<?= e(base_path()) ?>/deals">← Wróć do listy deali</a>
 
 <div class="deal-header">
     <div>

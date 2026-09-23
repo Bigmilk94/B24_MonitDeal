@@ -59,7 +59,7 @@
             <?php foreach ($needsAttention as $view): ?>
                 <div class="attention-row">
                     <div class="attention-row-main">
-                        <a class="attention-row-title" href="/deals/<?= e($view->deal->id) ?>"><?= e($view->deal->title) ?></a>
+                        <a class="attention-row-title" href="<?= e(base_path()) ?>/deals/<?= e($view->deal->id) ?>"><?= e($view->deal->title) ?></a>
                         <span class="attention-row-sub">
                             <?= e($view->company->name) ?> · <?= e($view->owner->name) ?> ·
                             ostatnia aktywność: <?= e($view->metrics->lastActivityRelative) ?>

@@ -19,6 +19,26 @@ if (!function_exists('money')) {
     }
 }
 
+if (!function_exists('base_path')) {
+    /**
+     * The URL path the app is mounted under — '' at the domain root,
+     * '/monitdeal' if uploaded into a subfolder, etc. Every internal link
+     * and asset path in the templates is prefixed with this, so the app
+     * works unmodified whether it lives at the domain root or in any
+     * subfolder someone uploads it to.
+     *
+     * Derived from SCRIPT_NAME (always the real front controller, index.php,
+     * regardless of the "pretty" rewritten URL) — no framework/config needed.
+     */
+    function base_path(): string
+    {
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
+        $dir = rtrim(dirname($scriptName), '/');
+
+        return $dir === '' || $dir === '.' ? '' : $dir;
+    }
+}
+
 if (!function_exists('qs')) {
     /**
      * Build a query string from the current GET params with some keys

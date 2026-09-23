@@ -14,7 +14,7 @@ $stageClass = match (true) {
 ?>
 <tr>
     <td class="cell-deal">
-        <a class="deal-link" href="/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a>
+        <a class="deal-link" href="<?= e(base_path()) ?>/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a>
         <div class="cell-sub">#<?= e($deal->id) ?> · <?= e($view->contact->name) ?></div>
     </td>
     <td>

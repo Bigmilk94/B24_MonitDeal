@@ -43,7 +43,7 @@ $statuses = ['' => 'Wszystkie', 'open' => 'Otwarte', 'overdue' => 'Przeterminowa
                     : e(\App\Support\TimeFormatter::dateTime($task->dueAt)) ?>
             </td>
             <td class="cell-activity">„<?= e($task->title) ?>”</td>
-            <td class="cell-deal"><a class="deal-link" href="/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a></td>
+            <td class="cell-deal"><a class="deal-link" href="<?= e(base_path()) ?>/deals/<?= e($deal->id) ?>"><?= e($deal->title) ?></a></td>
             <td><?= e($task->performedBy->name) ?></td>
             <td>
                 <?php if ($task->isCompleted()): ?>
