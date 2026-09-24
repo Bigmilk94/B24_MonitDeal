@@ -15,6 +15,21 @@
     } catch (e) {}
 })();
 </script>
+<?php if (!empty($bitrix24Embedded)): ?>
+<script src="https://api.bitrix24.com/api/v1/"></script>
+<script>
+(function () {
+    // Bitrix24 trzyma ekran "Ładowanie aplikacji" w oknie nadrzędnym,
+    // dopóki strona w iframe nie zawoła BX24.init() — bez tego aplikacja
+    // działa poprawnie, ale nigdy się "nie pokazuje".
+    if (typeof BX24 !== 'undefined') {
+        BX24.init(function () {
+            try { BX24.fitWindow(); } catch (e) {}
+        });
+    }
+})();
+</script>
+<?php endif; ?>
 </head>
 <body>
 <div class="app-shell">
